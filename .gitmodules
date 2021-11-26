@@ -1,0 +1,6 @@
+[submodule "lava-dl"]
+	path = lava-dl
+	url = https://github.com/lava-nc/lava-dl.git
+[submodule "lava"]
+	path = lava
+	url = https://github.com/lava-nc/lava.git
