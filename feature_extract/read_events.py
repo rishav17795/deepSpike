@@ -1,9 +1,14 @@
 import numpy as np
-import os
+import os,sys
 import re
 import math
-from hats import HATS
 from collections import namedtuple
+import matplotlib.pyplot as plt
+from matplotlib import animation
+
+import lava.lib.dl.slayer as slayer
+
+
 Event = namedtuple('Event', ['x', 'y', 'ts', 'polarity'])
 event_dtype = np.dtype([('x', np.uint16), ('y', np.uint16), ('ts', np.float64), ('polarity', np.int8)])
 
@@ -15,16 +20,16 @@ def unwarp(ts):
 
 def load_sample(name, number):
     """Load data.log files into numpy array with events."""
-    data_dir = "/home/sveamari/benchmarking/masterthesis2/data/20_20_rot_data/"
+    data_dir = "data\\20_20_rot_data\\"
     eventPattern = re.compile('(\d+) (\d+\.\d+) ([A-Z]+) \((.*)\)')
     obj = name
     for root, d_names, f_names in os.walk(data_dir + obj):
         sub_dir = sorted(d_names)[number]
-        print(os.path.join(data_dir, name, sub_dir, 'data.log'))
+        # print(os.path.join(data_dir, name, sub_dir, 'data.log'))
         with open(os.path.join(data_dir, name, sub_dir, 'data.log'), 'r') as f:
             parsedContent = eventPattern.findall(f.read())
         ts, events = np.concatenate([x[-1].split(' ') for x in parsedContent]).reshape(-1, 2).swapaxes(0, 1).astype(
-            np.int)
+            np.int64)
         unwarp(ts)
         test_img = np.zeros((len(events), 4))
         test_img[:, 0] = events >> 1 & 0x3FF
@@ -32,6 +37,7 @@ def load_sample(name, number):
         test_img[:, 3] = events & 0x01
         test_img[:, 2] = (ts - ts[0]) * 80e-9
         break
+    # sample_events = slayer.io.Event(test_img[:, 0],test_img[:, 1],test_img[:, 3],test_img[:, 2])
     return test_img
 
 
@@ -39,6 +45,7 @@ def prepare_test_image(test_img, name, w_in=96):
     """Split events into six equally sized chunks (six saccades), only consider events in the region of interest (ROI)
      and sample down to 5500 events per saccade."""
 
+    # test_img = all_events.to_tensor()
     # prepare regions of interest
     widthROI = w_in
     heightROI = w_in
@@ -60,9 +67,10 @@ def prepare_test_image(test_img, name, w_in=96):
     # divide into saccades
     number_of_events = len(test_img)
     events_per_sample = math.floor(number_of_events / 6)
+    print(events_per_sample)
     saccades = [test_img[i*events_per_sample:(i+1)*events_per_sample, :] for i in range(6)]
 
-    results = []
+    results = np.zeros((1, 4))
     for events in saccades:
        # cut to region of interest
         events_outside_region = []
@@ -70,6 +78,7 @@ def prepare_test_image(test_img, name, w_in=96):
             if row[0] < CROP_XL or row[0] >= CROP_XU or row[1] < CROP_YL or row[1] >= CROP_YU:
                 events_outside_region.append(idx)
         roi_events = np.delete(events, events_outside_region, 0)
+        print(len(roi_events))
 
         # randomly downsample to 5500 samples per event
         n_left_over_events = len(roi_events) - 5500
@@ -78,18 +87,17 @@ def prepare_test_image(test_img, name, w_in=96):
             roi_events = roi_events[events_to_keep,:]
         roi_events[:, 0] -= CROP_XL
         roi_events[:, 1] -= CROP_YL
-        results.append(roi_events)
-
+        results = np.append(results,roi_events,axis=0)
+        
     return results
 
 if __name__ == '__main__':
-    print(os.getcwd())
-    my_sample = load_sample(name="large_clamp", number=6)
-    final_sample = prepare_test_image(my_sample, "large_clamp", w_in=96)
-    for sample in final_sample:
-        hats = HATS(temp_window=0.1, width=96, height=96, delta_t=0.1, tau=0.5, R=8, K=8)
-        events = [Event(*ev) for ev in sample]
-        events_np = np.array(events, dtype=event_dtype)
-        hats.reset()
-        hats.process_all(events_np)
+    name = "scissors"
+    number = 3
+    sample_events = load_sample(name=name, number=number)
+    # print(sample_events)
+    results = prepare_test_image(sample_events, name, w_in=96)
+    final_sample = slayer.io.Event(results[:, 0],results[:, 1],results[:, 3],results[:, 2])
+    anim = final_sample.anim(plt.figure(figsize=(5, 5)), frame_rate=4800)
+    anim.save(f'gifs/{name}_{number}.gif', animation.PillowWriter(fps=5), dpi=300)
 
