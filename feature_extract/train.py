@@ -120,8 +120,8 @@ if __name__ == '__main__':
             stats.print(epoch, iter=i, header=header, dataloader=test_loader)
 
         if stats.testing.best_accuracy:
-            torch.save(net.state_dict(), trained_folder + '/network.pt')
+            torch.save(net.state_dict(), trained_folder + os.sep + 'network.pt')
         stats.update()
-        stats.save(trained_folder + '/')
-        stats.plot(path=trained_folder + '/')
-        net.grad_flow(trained_folder + '/')
+        stats.save(trained_folder + os.sep)
+        stats.plot(path=trained_folder + os.sep)
+        net.grad_flow(trained_folder + os.sep)
