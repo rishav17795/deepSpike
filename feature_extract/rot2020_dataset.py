@@ -4,6 +4,7 @@ import glob
 from matplotlib import animation, pyplot as plt
 import numpy as np
 import re
+from numpy import random
 import torch
 from torch.utils.data import Dataset
 import read_events
@@ -19,6 +20,8 @@ class ROTDataset(Dataset):
         super(ROTDataset, self).__init__()
         self.path = path
         self.samples = glob.glob(f'{path}{os.sep}*{os.sep}*{os.sep}data.log')
+        random.seed(42)
+        random.shuffle(self.samples)
         self.w_in = w_in
         self.sampling_time = sampling_time
         self.num_time_bins = num_time_bins
@@ -64,7 +67,7 @@ class ROTDataset(Dataset):
 
 if __name__ == '__main__':
     training_set = ROTDataset()
-    filename = training_set.samples[45]
+    filename = training_set.samples[47]
     label = filename.split(os.sep)[-3]
     d_names = next(os.walk(training_set.path + os.sep + label + os.sep + '.'))[1]
     number = sorted(d_names).index(filename.split(os.sep)[-2])
@@ -80,4 +83,5 @@ if __name__ == '__main__':
                 )
     print(training_set.all_labels.index(label))
     anim = roi_events.anim(plt.figure(figsize=(5, 5)), frame_rate=4800)
-    anim.save(f'gifs/{label}_{number}.gif', animation.PillowWriter(fps=5), dpi=300)
+    cwd = os.getcwd()
+    anim.save(f'{cwd}{os.sep}gifs/{label}_{number}.gif', animation.PillowWriter(fps=5), dpi=300)

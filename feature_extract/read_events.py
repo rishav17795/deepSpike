@@ -20,7 +20,7 @@ def unwarp(ts):
 
 def load_sample(name, number):
     """Load data.log files into numpy array with events."""
-    data_dir = "data\\20_20_rot_data\\"
+    data_dir = f"data{os.sep}20_20_rot_data{os.sep}"
     eventPattern = re.compile('(\d+) (\d+\.\d+) ([A-Z]+) \((.*)\)')
     obj = name
     for root, d_names, f_names in os.walk(data_dir + obj):
@@ -63,11 +63,11 @@ def prepare_test_image(test_img, name, w_in=96):
     CROP_XU = CROP_XL + widthROI
     CROP_YL = ROIs[name][1]
     CROP_YU = CROP_YL + heightROI
-
+    np.random.seed(42)
     # divide into saccades
     number_of_events = len(test_img)
     events_per_sample = math.floor(number_of_events / 6)
-    print(events_per_sample)
+    # print(events_per_sample)
     saccades = [test_img[i*events_per_sample:(i+1)*events_per_sample, :] for i in range(6)]
 
     results = np.zeros((1, 4))
@@ -78,7 +78,7 @@ def prepare_test_image(test_img, name, w_in=96):
             if row[0] < CROP_XL or row[0] >= CROP_XU or row[1] < CROP_YL or row[1] >= CROP_YU:
                 events_outside_region.append(idx)
         roi_events = np.delete(events, events_outside_region, 0)
-        print(len(roi_events))
+        # print(len(roi_events))
 
         # randomly downsample to 5500 samples per event
         n_left_over_events = len(roi_events) - 5500
@@ -92,12 +92,13 @@ def prepare_test_image(test_img, name, w_in=96):
     return results
 
 if __name__ == '__main__':
-    name = "scissors"
+    name = "bowl"
     number = 3
     sample_events = load_sample(name=name, number=number)
     # print(sample_events)
     results = prepare_test_image(sample_events, name, w_in=96)
     final_sample = slayer.io.Event(results[:, 0],results[:, 1],results[:, 3],results[:, 2])
     anim = final_sample.anim(plt.figure(figsize=(5, 5)), frame_rate=4800)
-    anim.save(f'gifs/{name}_{number}.gif', animation.PillowWriter(fps=5), dpi=300)
+    cwd = os.getcwd()
+    anim.save(f'{cwd}{os.sep}gifs/{name}_{number}.gif', animation.PillowWriter(fps=5), dpi=300)
 

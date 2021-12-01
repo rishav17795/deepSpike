@@ -83,9 +83,9 @@ if __name__ == '__main__':
     testing_set = rot2020_dataset.ROTDataset(train=False)
 
     train_loader = DataLoader(
-            dataset=training_set, batch_size=32, shuffle=True
+            dataset=training_set, batch_size=4, shuffle=True
         )
-    test_loader = DataLoader(dataset=testing_set, batch_size=32, shuffle=True)
+    test_loader = DataLoader(dataset=testing_set, batch_size=4, shuffle=True)
 
     error = slayer.loss.SpikeRate(
             true_rate=0.2, false_rate=0.03, reduction='sum'
