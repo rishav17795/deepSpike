@@ -6,7 +6,7 @@ lava_env/
 .vscode/
 
 feature_extract/__pycache__/
-
+feature_extract/gifs/
 .Python
 [Bb]in
 [Ii]nclude
