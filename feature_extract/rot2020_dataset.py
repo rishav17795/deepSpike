@@ -15,7 +15,7 @@ class ROTDataset(Dataset):
     """
     def __init__(
         self, path=os.path.join('data', '20_20_rot_data'), sampling_time = 1, 
-        num_time_bins = 5000, transform = None, w_in=96, train = False
+        num_time_bins = 500, transform = None, w_in=96, train = False
     ):
         super(ROTDataset, self).__init__()
         self.path = path
