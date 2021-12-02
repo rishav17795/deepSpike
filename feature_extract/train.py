@@ -24,7 +24,7 @@ class Network(torch.nn.Module):
 
         self.blocks = torch.nn.ModuleList([
                 slayer.block.cuba.Conv(
-                    neuron_params_drop, in_features = 2, out_features = 32,
+                    neuron_params_drop, in_features = 2, out_features = 8,
                     kernel_size = (3,3) , stride = (2,2), padding = 1,
                     weight_norm=True, delay=True
                 ),
@@ -34,7 +34,7 @@ class Network(torch.nn.Module):
                 ),
                 slayer.block.cuba.Flatten(),
                 slayer.block.cuba.Dense(
-                    neuron_params, in_neurons = 32*24*24, out_neurons = 20,
+                    neuron_params, in_neurons = 8*24*24, out_neurons = 20,
                     weight_norm=True
                 ),
             ])
@@ -102,7 +102,7 @@ if __name__ == '__main__':
 
     for epoch in range(epochs):
         for i, (input, label) in enumerate(train_loader):  # training loop
-            print(''.join( [f'{training_set.all_labels[label[k].item()]} ' for k in range(len(label))] ))
+            # print(''.join( [f'{training_set.all_labels[label[k].item()]} ' for k in range(len(label))] ))
             output, count = assistant.train(input, label)
             header = [
                     'Event rate : ' +
@@ -111,7 +111,6 @@ if __name__ == '__main__':
             stats.print(epoch, iter=i, header=header, dataloader=train_loader)
 
         for i, (input, label) in enumerate(test_loader):  # training loop
-            print(f'Testing on {training_set.all_labels[label]}')
             output, count = assistant.test(input, label)
             header = [
                     'Event rate : ' +
