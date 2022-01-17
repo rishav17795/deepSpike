@@ -55,15 +55,34 @@ class ROTDataset(Dataset):
                         roi_event_nparray[:, 3],
                         roi_event_nparray[:, 2]
                     )
+        roi_events_aug = self.augment(roi_events)
         spike = roi_events.fill_tensor(
                     torch.zeros(2, self.w_in, self.w_in, self.num_time_bins),
                     sampling_time=self.sampling_time
                 )
-        return spike, self.all_labels.index(label)
+        spike_aug = roi_events_aug.fill_tensor(
+                    torch.zeros(2, self.w_in, self.w_in, self.num_time_bins),
+                    sampling_time=self.sampling_time
+                )
+        # return spike, self.all_labels.index(label)
+        
+        return torch.cat((spike,spike_aug),dim=0), self.all_labels.index(label)
 
     def __len__(self):
         return len(self.samples)
 
+    def augment(self,event):
+        x_shift = 4
+        y_shift = 4
+        theta = 10
+        xjitter = np.random.randint(2*x_shift) - x_shift
+        yjitter = np.random.randint(2*y_shift) - y_shift
+        ajitter = (np.random.rand() - 0.5) * theta / 180 * 3.141592654
+        sin_theta = np.sin(ajitter)
+        cos_theta = np.cos(ajitter)
+        event.x = event.x * cos_theta - event.y * sin_theta + xjitter
+        event.y = event.x * sin_theta + event.y * cos_theta + yjitter
+        return event
 
 if __name__ == '__main__':
     training_set = ROTDataset()

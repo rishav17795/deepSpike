@@ -5,6 +5,7 @@ import rot2020_dataset
 import lava.lib.dl.slayer as slayer
 import matplotlib.pyplot as plt
 import h5py
+import loss
 
 
 class Network(torch.nn.Module):
@@ -34,7 +35,7 @@ class Network(torch.nn.Module):
                 ),
                 slayer.block.cuba.Flatten(),
                 slayer.block.cuba.Dense(
-                    neuron_params, in_neurons = 8*24*24, out_neurons = 20,
+                    neuron_params, in_neurons = 8*24*24, out_neurons = 128,
                     weight_norm=True
                 ),
             ])
@@ -83,14 +84,16 @@ if __name__ == '__main__':
     testing_set = rot2020_dataset.ROTDataset(train=False)
 
     train_loader = DataLoader(
-            dataset=training_set, batch_size=4, shuffle=True
+            dataset=training_set, batch_size=16, shuffle=True
         )
-    test_loader = DataLoader(dataset=testing_set, batch_size=4, shuffle=True)
+    test_loader = DataLoader(dataset=testing_set, batch_size=16, shuffle=True)
 
-    error = slayer.loss.SpikeRate(
-            true_rate=0.2, false_rate=0.03, reduction='sum'
-        ).to(device)
+    # error = slayer.loss.SpikeRate(
+    #         true_rate=0.2, false_rate=0.03, reduction='sum'
+    #     ).to(device)
     # error = slayer.loss.SpikeMax(mode='logsoftmax').to(device)
+
+    error = loss.SupConLoss().to(device)
 
     stats = slayer.utils.LearningStats()
     assistant = slayer.utils.Assistant(
@@ -98,11 +101,14 @@ if __name__ == '__main__':
             classifier=slayer.classifier.Rate.predict, count_log=True
         )
 
-    epochs = 5
+    epochs = 20
 
     for epoch in range(epochs):
         for i, (input, label) in enumerate(train_loader):  # training loop
             # print(''.join( [f'{training_set.all_labels[label[k].item()]} ' for k in range(len(label))] ))
+            input, input_aug = torch.split(input,2,dim=1)
+            input = torch.cat((input,input_aug),dim=0)
+            label = torch.cat((label,label),dim=0)
             output, count = assistant.train(input, label)
             header = [
                     'Event rate : ' +
@@ -110,7 +116,10 @@ if __name__ == '__main__':
                 ]
             stats.print(epoch, iter=i, header=header, dataloader=train_loader)
 
-        for i, (input, label) in enumerate(test_loader):  # training loop
+        for i, (input, label) in enumerate(test_loader):  # testing loop
+            input, input_aug = torch.split(input,2,dim=1)
+            input = torch.cat((input,input_aug),dim=0)
+            label = torch.cat((label,label),dim=0)
             output, count = assistant.test(input, label)
             header = [
                     'Event rate : ' +
