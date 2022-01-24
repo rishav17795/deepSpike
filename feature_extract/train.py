@@ -1,4 +1,12 @@
-import os
+import os,sys
+
+cwd = os.getcwd()
+lava_dl_path = f"{cwd}{os.sep}..{os.sep}lava-dl{os.sep}src"
+sys.path.insert(0,lava_dl_path)
+lava_path = f"{cwd}{os.sep}..{os.sep}lava{os.sep}src"
+sys.path.insert(0,lava_path)
+sys.path.insert(0,cwd)
+
 import torch
 from torch.utils.data.dataloader import DataLoader
 import rot2020_dataset 
@@ -73,8 +81,8 @@ if __name__ == '__main__':
     trained_folder = 'Trained'
     os.makedirs(trained_folder, exist_ok=True)
 
-    # device = torch.device('cpu')
-    device = torch.device('cuda')
+    device = torch.device('cpu')
+    # device = torch.device('cuda')
 
     net = Network().to(device)
 

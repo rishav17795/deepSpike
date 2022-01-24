@@ -6,6 +6,14 @@ from collections import namedtuple
 import matplotlib.pyplot as plt
 from matplotlib import animation
 
+cwd = os.getcwd()
+lava_dl_path = f"{cwd}{os.sep}..{os.sep}lava-dl{os.sep}src"
+sys.path.insert(0,lava_dl_path)
+lava_path = f"{cwd}{os.sep}..{os.sep}lava{os.sep}src"
+sys.path.insert(0,lava_path)
+sys.path.insert(0,cwd)
+
+
 import lava.lib.dl.slayer as slayer
 
 

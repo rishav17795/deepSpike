@@ -1,5 +1,13 @@
 import math
-import os
+import os,sys
+
+cwd = os.getcwd()
+lava_dl_path = f"{cwd}{os.sep}..{os.sep}lava-dl{os.sep}src"
+sys.path.insert(0,lava_dl_path)
+lava_path = f"{cwd}{os.sep}..{os.sep}lava{os.sep}src"
+sys.path.insert(0,lava_path)
+sys.path.insert(0,cwd)
+
 import glob
 from matplotlib import animation, pyplot as plt
 import numpy as np
