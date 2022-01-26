@@ -83,7 +83,7 @@ def prepare_test_image(test_img, name, device, w_in=96):
     # saccades = [test_img[i*events_per_sample:(i+1)*events_per_sample, :] for i in range(6)]
     saccades = torch.split(test_img, events_per_sample, dim=0)
 
-    results = torch.empty((1, 4))
+    results = torch.empty((1, 4)).to(device)
     for events in saccades:
        # cut to region of interest
         # print(len(events))
