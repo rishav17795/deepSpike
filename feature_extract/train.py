@@ -90,7 +90,7 @@ if __name__ == '__main__':
 
     training_set = rot2020_dataset.ROTDataset(train=True,device=device)
     testing_set = rot2020_dataset.ROTDataset(train=False,device=device)
-    print("Data loaded successfully")
+
     train_loader = DataLoader(
             dataset=training_set, batch_size=16, shuffle=True
         )
@@ -117,7 +117,7 @@ if __name__ == '__main__':
             input, input_aug = torch.split(input,2,dim=1)
             input = torch.cat((input,input_aug),dim=0).to(device)
             label = torch.cat((label,label),dim=0).to(device)
-            print(label)
+            # print(label)
             output, count = assistant.train(input, label)
             header = [
                     'Event rate : ' +
