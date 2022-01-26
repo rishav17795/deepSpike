@@ -57,13 +57,13 @@ class ROTDataset(Dataset):
         roi_event_nparray = read_events.prepare_test_image(
                                 read_events.load_sample(label,number,self.device), 
                                 label,self.device
-                            ).to(self.device)
+                            ).to(torch.device('cpu'))
         roi_events = slayer.io.Event(
                         roi_event_nparray[:, 0],
                         roi_event_nparray[:, 1],
                         roi_event_nparray[:, 3],
                         roi_event_nparray[:, 2]
-                    )
+                    ).to_tensor()
         roi_events_aug = self.augment(roi_events)
         spike = roi_events.fill_tensor(
                     torch.zeros(2, self.w_in, self.w_in, self.num_time_bins).to(self.device),
