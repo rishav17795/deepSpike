@@ -23,7 +23,7 @@ class ROTDataset(Dataset):
     """
     def __init__(
         self, path=os.path.join('data', '20_20_rot_data'), sampling_time = 1, 
-        num_time_bins = 500, transform = None, w_in=96, train = False
+        num_time_bins = 500, transform = None, w_in=96, train = False, device = torch.device('cpu')
     ):
         super(ROTDataset, self).__init__()
         self.path = path
@@ -36,6 +36,7 @@ class ROTDataset(Dataset):
         self.transform = transform
         self.all_labels = next(os.walk(path + os.sep + '.'))[1]
         self.all_labels = sorted(self.all_labels)
+        self.device = device
 
         if train is True:
             self.samples = self.samples[
@@ -54,9 +55,9 @@ class ROTDataset(Dataset):
         number = sorted(d_names).index(filename.split(os.sep)[-2])
 
         roi_event_nparray = read_events.prepare_test_image(
-                                read_events.load_sample(label,number), 
-                                label
-                            )
+                                read_events.load_sample(label,number,self.device), 
+                                label,self.device
+                            ).to(self.device)
         roi_events = slayer.io.Event(
                         roi_event_nparray[:, 0],
                         roi_event_nparray[:, 1],
@@ -65,11 +66,11 @@ class ROTDataset(Dataset):
                     )
         roi_events_aug = self.augment(roi_events)
         spike = roi_events.fill_tensor(
-                    torch.zeros(2, self.w_in, self.w_in, self.num_time_bins),
+                    torch.zeros(2, self.w_in, self.w_in, self.num_time_bins).to(self.device),
                     sampling_time=self.sampling_time
                 )
         spike_aug = roi_events_aug.fill_tensor(
-                    torch.zeros(2, self.w_in, self.w_in, self.num_time_bins),
+                    torch.zeros(2, self.w_in, self.w_in, self.num_time_bins).to(self.device),
                     sampling_time=self.sampling_time
                 )
         # return spike, self.all_labels.index(label)

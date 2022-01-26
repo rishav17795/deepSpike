@@ -88,9 +88,9 @@ if __name__ == '__main__':
 
     optimizer = torch.optim.Adam(net.parameters(), lr=0.001)
 
-    training_set = rot2020_dataset.ROTDataset(train=True)
-    testing_set = rot2020_dataset.ROTDataset(train=False)
-
+    training_set = rot2020_dataset.ROTDataset(train=True,device=device)
+    testing_set = rot2020_dataset.ROTDataset(train=False,device=device)
+    print("Data loaded successfully")
     train_loader = DataLoader(
             dataset=training_set, batch_size=16, shuffle=True
         )

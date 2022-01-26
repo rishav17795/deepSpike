@@ -27,7 +27,7 @@ def unwarp(ts):
         ts[i + 1:] += 2 ** 30
 
 
-def load_sample(name, number):
+def load_sample(name, number, device):
     """Load data.log files into numpy array with events."""
     data_dir = f"data{os.sep}20_20_rot_data{os.sep}"
     eventPattern = re.compile('(\d+) (\d+\.\d+) ([A-Z]+) \((.*)\)')
@@ -39,10 +39,10 @@ def load_sample(name, number):
             parsedContent = eventPattern.findall(f.read())
         # ts, events = np.concatenate([x[-1].split(' ') for x in parsedContent]).reshape(-1, 2).swapaxes(0, 1).astype(
         #     np.int64)
-        ts, events = torch.cat([torch.tensor(np.asarray(x[-1].split(' ')).astype(np.int64)) for x in parsedContent]).reshape(-1, 2).swapaxes(0, 1)
+        ts, events = torch.cat([torch.tensor(np.asarray(x[-1].split(' ')).astype(np.int64)) for x in parsedContent]).reshape(-1, 2).swapaxes(0, 1).to(device)
         
         unwarp(ts)
-        test_img = torch.zeros((len(events), 4))
+        test_img = torch.zeros((len(events), 4)).to(device)
         test_img[:, 0] = events >> 1 & 0x3FF
         test_img[:, 1] = events >> 12 & 0x1FF
         test_img[:, 3] = events & 0x01
@@ -52,7 +52,7 @@ def load_sample(name, number):
     return test_img
 
 
-def prepare_test_image(test_img, name, w_in=96):
+def prepare_test_image(test_img, name, device, w_in=96):
     """Split events into six equally sized chunks (six saccades), only consider events in the region of interest (ROI)
      and sample down to 5500 events per saccade."""
 
@@ -80,7 +80,7 @@ def prepare_test_image(test_img, name, w_in=96):
     events_per_sample = math.floor(number_of_events / 6)
     # print(events_per_sample)
     # saccades = [test_img[i*events_per_sample:(i+1)*events_per_sample, :] for i in range(6)]
-    saccades = torch.split(test_img, events_per_sample, dim=0)
+    saccades = torch.split(test_img, events_per_sample, dim=0).to(device)
 
     results = torch.empty((1, 4))
     for events in saccades:
@@ -101,7 +101,7 @@ def prepare_test_image(test_img, name, w_in=96):
             roi_events = roi_events[events_to_keep,:]
         roi_events[:, 0] -= CROP_XL
         roi_events[:, 1] -= CROP_YL
-        results = torch.cat([results,roi_events])
+        results = torch.cat([results,roi_events]).to(device)
         
     return results
 
