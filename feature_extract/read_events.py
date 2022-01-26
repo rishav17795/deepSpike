@@ -5,6 +5,7 @@ import math
 from collections import namedtuple
 import matplotlib.pyplot as plt
 from matplotlib import animation
+import torch
 
 cwd = os.getcwd()
 lava_dl_path = f"{cwd}{os.sep}..{os.sep}lava-dl{os.sep}src"
@@ -36,10 +37,12 @@ def load_sample(name, number):
         # print(os.path.join(data_dir, name, sub_dir, 'data.log'))
         with open(os.path.join(data_dir, name, sub_dir, 'data.log'), 'r') as f:
             parsedContent = eventPattern.findall(f.read())
-        ts, events = np.concatenate([x[-1].split(' ') for x in parsedContent]).reshape(-1, 2).swapaxes(0, 1).astype(
-            np.int64)
+        # ts, events = np.concatenate([x[-1].split(' ') for x in parsedContent]).reshape(-1, 2).swapaxes(0, 1).astype(
+        #     np.int64)
+        ts, events = torch.cat([torch.tensor(np.asarray(x[-1].split(' ')).astype(np.int64)) for x in parsedContent]).reshape(-1, 2).swapaxes(0, 1)
+        
         unwarp(ts)
-        test_img = np.zeros((len(events), 4))
+        test_img = torch.zeros((len(events), 4))
         test_img[:, 0] = events >> 1 & 0x3FF
         test_img[:, 1] = events >> 12 & 0x1FF
         test_img[:, 3] = events & 0x01
@@ -73,40 +76,44 @@ def prepare_test_image(test_img, name, w_in=96):
     CROP_YU = CROP_YL + heightROI
     np.random.seed(42)
     # divide into saccades
-    number_of_events = len(test_img)
+    number_of_events = test_img.size(dim=0)
     events_per_sample = math.floor(number_of_events / 6)
     # print(events_per_sample)
-    saccades = [test_img[i*events_per_sample:(i+1)*events_per_sample, :] for i in range(6)]
+    # saccades = [test_img[i*events_per_sample:(i+1)*events_per_sample, :] for i in range(6)]
+    saccades = torch.split(test_img, events_per_sample, dim=0)
 
-    results = np.zeros((1, 4))
+    results = torch.empty((1, 4))
     for events in saccades:
        # cut to region of interest
+        # print(len(events))
+        events_idx = range(len(events))
         events_outside_region = []
         for idx, row in enumerate(events):
             if row[0] < CROP_XL or row[0] >= CROP_XU or row[1] < CROP_YL or row[1] >= CROP_YU:
                 events_outside_region.append(idx)
-        roi_events = np.delete(events, events_outside_region, 0)
-        # print(len(roi_events))
-
-        # randomly downsample to 5500 samples per event
+        roi_events_idx = np.delete(events_idx, events_outside_region, 0)
+        roi_events = events[roi_events_idx,:]
+ 
+        # randomly downsample to 5500 samples per saccade
         n_left_over_events = len(roi_events) - 5500
         if n_left_over_events > 1:
             events_to_keep = np.random.default_rng().choice(len(roi_events), 5500, replace=False)
             roi_events = roi_events[events_to_keep,:]
         roi_events[:, 0] -= CROP_XL
         roi_events[:, 1] -= CROP_YL
-        results = np.append(results,roi_events,axis=0)
+        results = torch.cat([results,roi_events])
         
     return results
 
 if __name__ == '__main__':
-    name = "bowl"
-    number = 3
+    name = "large_clamp"
+    number = 1
     sample_events = load_sample(name=name, number=number)
     # print(sample_events)
     results = prepare_test_image(sample_events, name, w_in=96)
+    # print(type(results))
     final_sample = slayer.io.Event(results[:, 0],results[:, 1],results[:, 3],results[:, 2])
     anim = final_sample.anim(plt.figure(figsize=(5, 5)), frame_rate=4800)
     cwd = os.getcwd()
-    anim.save(f'{cwd}{os.sep}gifs/{name}_{number}.gif', animation.PillowWriter(fps=5), dpi=300)
+    anim.save(f'{cwd}{os.sep}gifs/{name}_{number}_withtensor.gif', animation.PillowWriter(fps=5), dpi=300)
 

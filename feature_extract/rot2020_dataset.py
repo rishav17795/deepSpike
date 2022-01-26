@@ -52,7 +52,7 @@ class ROTDataset(Dataset):
 
         d_names = next(os.walk(self.path + os.sep + label + os.sep + '.'))[1]
         number = sorted(d_names).index(filename.split(os.sep)[-2])
-        
+
         roi_event_nparray = read_events.prepare_test_image(
                                 read_events.load_sample(label,number), 
                                 label

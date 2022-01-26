@@ -115,8 +115,9 @@ if __name__ == '__main__':
         for i, (input, label) in enumerate(train_loader):  # training loop
             # print(''.join( [f'{training_set.all_labels[label[k].item()]} ' for k in range(len(label))] ))
             input, input_aug = torch.split(input,2,dim=1)
-            input = torch.cat((input,input_aug),dim=0)
-            label = torch.cat((label,label),dim=0)
+            input = torch.cat((input,input_aug),dim=0).to(device)
+            label = torch.cat((label,label),dim=0).to(device)
+            print(label)
             output, count = assistant.train(input, label)
             header = [
                     'Event rate : ' +
