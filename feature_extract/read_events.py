@@ -22,9 +22,10 @@ Event = namedtuple('Event', ['x', 'y', 'ts', 'polarity'])
 event_dtype = np.dtype([('x', np.uint16), ('y', np.uint16), ('ts', np.float64), ('polarity', np.int8)])
 
 def unwarp(ts):
-    wrap_indices = np.where(np.diff(ts) < 0)
+    wrap_indices = torch.where(torch.diff(ts) < 0)
     for i in wrap_indices[0]:
         ts[i + 1:] += 2 ** 30
+    return ts
 
 
 def load_sample(name, number, device):
@@ -41,7 +42,7 @@ def load_sample(name, number, device):
         #     np.int64)
         ts, events = torch.cat([torch.tensor(np.asarray(x[-1].split(' ')).astype(np.int64)) for x in parsedContent]).reshape(-1, 2).swapaxes(0, 1).to(device)
         
-        unwarp(ts)
+        ts = unwarp(ts)
         test_img = torch.zeros((len(events), 4)).to(device)
         test_img[:, 0] = events >> 1 & 0x3FF
         test_img[:, 1] = events >> 12 & 0x1FF
@@ -80,7 +81,7 @@ def prepare_test_image(test_img, name, device, w_in=96):
     events_per_sample = math.floor(number_of_events / 6)
     # print(events_per_sample)
     # saccades = [test_img[i*events_per_sample:(i+1)*events_per_sample, :] for i in range(6)]
-    saccades = torch.split(test_img, events_per_sample, dim=0).to(device)
+    saccades = torch.split(test_img, events_per_sample, dim=0)
 
     results = torch.empty((1, 4))
     for events in saccades:
