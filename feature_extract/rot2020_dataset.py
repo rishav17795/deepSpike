@@ -64,18 +64,18 @@ class ROTDataset(Dataset):
                         roi_event_nparray[:, 3],
                         roi_event_nparray[:, 2]
                     )
-        roi_events_aug = self.augment(roi_events)
+        # roi_events_aug = self.augment(roi_events)
         spike = roi_events.fill_tensor(
                     torch.zeros(2, self.w_in, self.w_in, self.num_time_bins).to(self.device),
                     sampling_time=self.sampling_time
                 )
-        spike_aug = roi_events_aug.fill_tensor(
-                    torch.zeros(2, self.w_in, self.w_in, self.num_time_bins).to(self.device),
-                    sampling_time=self.sampling_time
-                )
-        # return spike, self.all_labels.index(label)
+        # spike_aug = roi_events_aug.fill_tensor(
+        #             torch.zeros(2, self.w_in, self.w_in, self.num_time_bins).to(self.device),
+        #             sampling_time=self.sampling_time
+        #         )
+        return spike, self.all_labels.index(label)
         
-        return torch.cat((spike,spike_aug),dim=0), self.all_labels.index(label)
+        # return torch.cat((spike,spike_aug),dim=0), self.all_labels.index(label)
 
     def __len__(self):
         return len(self.samples)

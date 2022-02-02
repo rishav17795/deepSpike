@@ -44,7 +44,7 @@ class Network(torch.nn.Module):
                 ),
                 slayer.block.cuba.Flatten(),
                 slayer.block.cuba.Dense(
-                    neuron_params, in_neurons = 8*24*24, out_neurons = 128,
+                    neuron_params, in_neurons = 8*24*24, out_neurons = 20,
                     weight_norm=True
                 ),
             ])
@@ -102,7 +102,9 @@ if __name__ == '__main__':
     #     ).to(device)
     # error = slayer.loss.SpikeMax(mode='logsoftmax').to(device)
 
-    error = loss.SupConLoss().to(device)
+    error = slayer.loss.SpikeRate(
+            true_rate=0.2, false_rate=0.03, reduction='sum'
+        ).to(device)
 
     stats = slayer.utils.LearningStats()
     assistant = slayer.utils.Assistant(
@@ -115,12 +117,12 @@ if __name__ == '__main__':
     for epoch in range(epochs):
         for i, (input, label) in enumerate(train_loader):  # training loop
             # print(''.join( [f'{training_set.all_labels[label[k].item()]} ' for k in range(len(label))] ))
-            input, input_aug = torch.split(input,2,dim=1)
-            input = torch.cat((input,input_aug),dim=0).to(device)
-            label = torch.cat((label,label),dim=0).to(device)
+            # input, input_aug = torch.split(input,2,dim=1)
+            # input = torch.cat((input,input_aug),dim=0).to(device)
+            # label = torch.cat((label,label),dim=0).to(device)
             # print(label)
             output, count = assistant.train(input, label)
-            print(output)
+            # print(output)
             header = [
                     'Event rate : ' +
                     ', '.join([f'{c.item():.4f}' for c in count.flatten()])
@@ -128,9 +130,9 @@ if __name__ == '__main__':
             stats.print(epoch, iter=i, header=header, dataloader=train_loader)
 
         for i, (input, label) in enumerate(test_loader):  # testing loop
-            input, input_aug = torch.split(input,2,dim=1)
-            input = torch.cat((input,input_aug),dim=0)
-            label = torch.cat((label,label),dim=0)
+            # input, input_aug = torch.split(input,2,dim=1)
+            # input = torch.cat((input,input_aug),dim=0)
+            # label = torch.cat((label,label),dim=0)
             output, count = assistant.test(input, label)
             header = [
                     'Event rate : ' +

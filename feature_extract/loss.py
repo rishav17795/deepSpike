@@ -8,8 +8,8 @@ import torch.nn as nn
 class SupConLoss(nn.Module):
     """Supervised Contrastive Learning: https://arxiv.org/pdf/2004.11362.pdf.
     It also supports the unsupervised contrastive loss in SimCLR"""
-    def __init__(self, temperature=0.07, contrast_mode='all',
-                 base_temperature=0.07):
+    def __init__(self, temperature=1, contrast_mode='all',
+                 base_temperature=1):
         super(SupConLoss, self).__init__()
         self.temperature = temperature
         self.contrast_mode = contrast_mode
@@ -28,8 +28,11 @@ class SupConLoss(nn.Module):
         Returns:
             A loss scalar.
         """
+        
         input = input.reshape(input.shape[0], -1, input.shape[-1])
+        
         features = torch.mean(input,dim=-1)
+        # print(features.shape)
         device = (torch.device('cuda')
                   if features.is_cuda
                   else torch.device('cpu'))
@@ -60,9 +63,9 @@ class SupConLoss(nn.Module):
             torch.matmul(anchor_feature, contrast_feature.T).to(device),
             self.temperature).to(device)
         # for numerical stability
-        logits_max, _ = torch.max(anchor_dot_contrast, dim=1, keepdim=True)
-        logits = anchor_dot_contrast - logits_max.detach()
-        
+        # logits_max, _ = torch.max(anchor_dot_contrast, dim=1, keepdim=True)
+        # logits = anchor_dot_contrast - logits_max.detach()
+        logits = anchor_dot_contrast
         # tile mask
         mask = mask.repeat(anchor_count, contrast_count)
         
@@ -75,7 +78,7 @@ class SupConLoss(nn.Module):
         ).to(device)
         
         mask = mask * logits_mask
-        print(mask)
+        # print(mask)
         # compute log_prob
         exp_logits = torch.exp(logits) * logits_mask
         log_prob = logits - torch.log(exp_logits.sum(1, keepdim=True))
@@ -85,7 +88,7 @@ class SupConLoss(nn.Module):
 
         # loss
         loss = - (self.temperature / self.base_temperature) * mean_log_prob_pos
-        print(loss)
+        # print(loss)
         loss = loss.view(anchor_count, batch_size).mean()
 
         return loss
