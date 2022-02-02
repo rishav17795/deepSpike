@@ -82,8 +82,8 @@ if __name__ == '__main__':
     trained_folder = 'Trained'
     os.makedirs(trained_folder, exist_ok=True)
 
-    # device = torch.device('cpu')
-    device = torch.device('cuda')
+    device = torch.device('cpu')
+    # device = torch.device('cuda')
 
     net = Network().to(device)
 
@@ -93,9 +93,9 @@ if __name__ == '__main__':
     testing_set = rot2020_dataset.ROTDataset(train=False,device=device)
 
     train_loader = DataLoader(
-            dataset=training_set, batch_size=128, shuffle=True
+            dataset=training_set, batch_size=4, shuffle=True
         )
-    test_loader = DataLoader(dataset=testing_set, batch_size=128, shuffle=True)
+    test_loader = DataLoader(dataset=testing_set, batch_size=4, shuffle=True)
 
     # error = slayer.loss.SpikeRate(
     #         true_rate=0.2, false_rate=0.03, reduction='sum'
