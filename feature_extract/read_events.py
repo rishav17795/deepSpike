@@ -49,6 +49,7 @@ def load_sample(name, number, device):
         test_img[:, 3] = events & 0x01
         test_img[:, 2] = (ts - ts[0]) * 80e-9
         break
+    print("Events read from file")
     # sample_events = slayer.io.Event(test_img[:, 0],test_img[:, 1],test_img[:, 3],test_img[:, 2])
     return test_img
 
@@ -103,7 +104,7 @@ def prepare_test_image(test_img, name, device, w_in=96):
         roi_events[:, 0] -= CROP_XL
         roi_events[:, 1] -= CROP_YL
         results = torch.cat([results,roi_events]).to(device)
-        
+    print("Events processed")
     return results
 
 if __name__ == '__main__':
