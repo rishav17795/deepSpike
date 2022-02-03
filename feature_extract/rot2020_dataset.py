@@ -69,7 +69,7 @@ class ROTDataset(Dataset):
                     torch.zeros(2, self.w_in, self.w_in, self.num_time_bins).to(self.device),
                     sampling_time=self.sampling_time
                 )
-        # print("Events converted to tensor.")
+        print(f'Completed Loading:{label} from file\r')
         # spike_aug = roi_events_aug.fill_tensor(
         #             torch.zeros(2, self.w_in, self.w_in, self.num_time_bins).to(self.device),
         #             sampling_time=self.sampling_time
