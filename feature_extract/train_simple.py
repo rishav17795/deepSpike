@@ -82,8 +82,8 @@ if __name__ == '__main__':
     trained_folder = 'Trained'
     os.makedirs(trained_folder, exist_ok=True)
 
-    device = torch.device('cpu')
-    # device = torch.device('cuda')
+    # device = torch.device('cpu')
+    device = torch.device('cuda')
 
     net = Network().to(device)
 
