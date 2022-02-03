@@ -82,8 +82,8 @@ if __name__ == '__main__':
     trained_folder = 'Trained'
     os.makedirs(trained_folder, exist_ok=True)
 
-    # device = torch.device('cpu')
-    device = torch.device('cuda')
+    device = torch.device('cpu')
+    # device = torch.device('cuda')
 
     net = Network().to(device)
 
@@ -91,7 +91,7 @@ if __name__ == '__main__':
 
     training_set = rot2020_dataset.ROTDataset(train=True)
     testing_set = rot2020_dataset.ROTDataset(train=False)
-    batch_size=128
+    batch_size=32
     train_loader = DataLoader(
             dataset=training_set, batch_size=batch_size, shuffle=True
         )
@@ -112,11 +112,11 @@ if __name__ == '__main__':
             classifier=slayer.classifier.Rate.predict, count_log=True
         )
 
-    epochs = 20
+    epochs = 200
 
     for epoch in range(epochs):
         for i, (input, label) in enumerate(train_loader):  # training loop
-            print(f'Processing:{i}/{batch_size}inputs in batch\r')
+            print(f'Processing: {i}/{batch_size} inputs in batch ---------------------------------------', end = '\r')
             # input, input_aug = torch.split(input,2,dim=1)
             # input = torch.cat((input,input_aug),dim=0).to(device)
             # label = torch.cat((label,label),dim=0).to(device)
