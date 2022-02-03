@@ -116,11 +116,13 @@ if __name__ == '__main__':
 
     for epoch in range(epochs):
         for i, (input, label) in enumerate(train_loader):  # training loop
-            # print(''.join( [f'{training_set.all_labels[label[k].item()]} ' for k in range(len(label))] ))
+            print(f'Processing:{i}/{len(epoch)}inputs in batch\r')
             # input, input_aug = torch.split(input,2,dim=1)
             # input = torch.cat((input,input_aug),dim=0).to(device)
             # label = torch.cat((label,label),dim=0).to(device)
             # print(label)
+            input = input.to(device)
+            label = label.to(device)
             output, count = assistant.train(input, label)
             # print(output)
             header = [
