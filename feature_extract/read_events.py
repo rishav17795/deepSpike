@@ -1,3 +1,4 @@
+import time
 import numpy as np
 import os,sys
 import re
@@ -28,7 +29,7 @@ def unwarp(ts):
     return ts
 
 
-def load_sample(name, number, device):
+def load_sample(name, number, device=torch.device('cpu')):
     """Load data.log files into numpy array with events."""
     data_dir = f"data{os.sep}20_20_rot_data{os.sep}"
     eventPattern = re.compile('(\d+) (\d+\.\d+) ([A-Z]+) \((.*)\)')
@@ -49,12 +50,12 @@ def load_sample(name, number, device):
         test_img[:, 3] = events & 0x01
         test_img[:, 2] = (ts - ts[0]) * 80e-9
         break
-    print("Events read from file")
+    # print("Events read from file")
     # sample_events = slayer.io.Event(test_img[:, 0],test_img[:, 1],test_img[:, 3],test_img[:, 2])
     return test_img
 
 
-def prepare_test_image(test_img, name, device, w_in=96):
+def prepare_test_image(test_img, name, device=torch.device('cpu'), w_in=96):
     """Split events into six equally sized chunks (six saccades), only consider events in the region of interest (ROI)
      and sample down to 5500 events per saccade."""
 
@@ -89,12 +90,16 @@ def prepare_test_image(test_img, name, device, w_in=96):
        # cut to region of interest
         # print(len(events))
         events_idx = range(len(events))
-        events_outside_region = []
-        for idx, row in enumerate(events):
-            if row[0] < CROP_XL or row[0] >= CROP_XU or row[1] < CROP_YL or row[1] >= CROP_YU:
-                events_outside_region.append(idx)
-        roi_events_idx = np.delete(events_idx, events_outside_region, 0)
-        roi_events = events[roi_events_idx,:]
+        events_inside_region = torch.nonzero(torch.logical_and(events[:,0]>= CROP_XL, 
+                                    torch.logical_and(events[:,0] < CROP_XU,
+                                        torch.logical_and(events[:,1] >= CROP_YL,events[:,1] < CROP_YU) ) ))
+        roi_events = events[events_inside_region,:].reshape(-1,4)
+        # print(roi_events.shape)
+        # for idx, row in enumerate(events):
+        #     if row[0] < CROP_XL or row[0] >= CROP_XU or row[1] < CROP_YL or row[1] >= CROP_YU:
+        #         events_outside_region.append(idx)
+        # roi_events_idx = np.delete(events_idx, events_outside_region, 0)
+        # roi_events = events[roi_events_idx,:]
  
         # randomly downsample to 5500 samples per saccade
         n_left_over_events = len(roi_events) - 5500
@@ -104,18 +109,20 @@ def prepare_test_image(test_img, name, device, w_in=96):
         roi_events[:, 0] -= CROP_XL
         roi_events[:, 1] -= CROP_YL
         results = torch.cat([results,roi_events]).to(device)
-    print("Events processed")
+    # print("Events processed")
     return results
 
 if __name__ == '__main__':
     name = "large_clamp"
     number = 1
+    start_time = time.time()
     sample_events = load_sample(name=name, number=number)
     # print(sample_events)
     results = prepare_test_image(sample_events, name, w_in=96)
     # print(type(results))
+    print("--- %s seconds ---" % (time.time() - start_time))
     final_sample = slayer.io.Event(results[:, 0],results[:, 1],results[:, 3],results[:, 2])
     anim = final_sample.anim(plt.figure(figsize=(5, 5)), frame_rate=4800)
     cwd = os.getcwd()
-    anim.save(f'{cwd}{os.sep}gifs/{name}_{number}_withtensor.gif', animation.PillowWriter(fps=5), dpi=300)
+    anim.save(f'{cwd}{os.sep}gifs/{name}_{number}_withtensor_mod.gif', animation.PillowWriter(fps=5), dpi=300)
 
