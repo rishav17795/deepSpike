@@ -89,13 +89,13 @@ if __name__ == '__main__':
 
     optimizer = torch.optim.Adam(net.parameters(), lr=0.1)
 
-    training_set = rot2020_dataset.ROTDataset(train=True,device=device)
-    testing_set = rot2020_dataset.ROTDataset(train=False,device=device)
-
+    training_set = rot2020_dataset.ROTDataset(train=True)
+    testing_set = rot2020_dataset.ROTDataset(train=False)
+    batch_size=128
     train_loader = DataLoader(
-            dataset=training_set, batch_size=128, shuffle=True
+            dataset=training_set, batch_size=batch_size, shuffle=True
         )
-    test_loader = DataLoader(dataset=testing_set, batch_size=128, shuffle=True)
+    test_loader = DataLoader(dataset=testing_set, batch_size=batch_size, shuffle=True)
 
     # error = slayer.loss.SpikeRate(
     #         true_rate=0.2, false_rate=0.03, reduction='sum'
@@ -116,7 +116,7 @@ if __name__ == '__main__':
 
     for epoch in range(epochs):
         for i, (input, label) in enumerate(train_loader):  # training loop
-            print(f'Processing:{i}/{128}inputs in batch\r')
+            print(f'Processing:{i}/{batch_size}inputs in batch\r')
             # input, input_aug = torch.split(input,2,dim=1)
             # input = torch.cat((input,input_aug),dim=0).to(device)
             # label = torch.cat((label,label),dim=0).to(device)
