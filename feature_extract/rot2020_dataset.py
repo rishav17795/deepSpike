@@ -23,7 +23,7 @@ class ROTDataset(Dataset):
     """
     def __init__(
         self, path=os.path.join('data', '20_20_rot_data'), sampling_time = 1, 
-        num_time_bins = 500, transform = None, w_in=96, train = False, device = torch.device('cpu')
+        num_time_bins = 500, loss = None, transform = None, w_in=96, train = False, device = torch.device('cpu')
     ):
         super(ROTDataset, self).__init__()
         self.path = path
@@ -37,6 +37,7 @@ class ROTDataset(Dataset):
         self.all_labels = next(os.walk(path + os.sep + '.'))[1]
         self.all_labels = sorted(self.all_labels)
         self.device = device
+        self.loss = loss
 
         if train is True:
             self.samples = self.samples[
@@ -48,35 +49,96 @@ class ROTDataset(Dataset):
                 ]
 
     def __getitem__(self, index: int):
-        filename = self.samples[index]
-        label = filename.split(os.sep)[-3]
+        if self.loss is None:
+            filename = self.samples[index]
+            label = filename.split(os.sep)[-3]
 
-        d_names = next(os.walk(self.path + os.sep + label + os.sep + '.'))[1]
-        number = sorted(d_names).index(filename.split(os.sep)[-2])
+            d_names = next(os.walk(self.path + os.sep + label + os.sep + '.'))[1]
+            number = sorted(d_names).index(filename.split(os.sep)[-2])
 
-        roi_event_nparray = read_events.prepare_test_image(
-                                read_events.load_sample(label,number,self.device), 
-                                label,self.device
-                            ).to(torch.device('cpu'))
-        roi_events = slayer.io.Event(
-                        roi_event_nparray[:, 0],
-                        roi_event_nparray[:, 1],
-                        roi_event_nparray[:, 3],
-                        roi_event_nparray[:, 2]
+            roi_event_nparray = read_events.prepare_test_image(
+                                    read_events.load_sample(label,number,self.device), 
+                                    label,self.device
+                                ).to(torch.device('cpu'))
+            roi_events = slayer.io.Event(
+                            roi_event_nparray[:, 0],
+                            roi_event_nparray[:, 1],
+                            roi_event_nparray[:, 3],
+                            roi_event_nparray[:, 2]
+                        )
+            roi_events_aug = self.augment(roi_events)
+            spike = roi_events.fill_tensor(
+                        torch.zeros(2, self.w_in, self.w_in, self.num_time_bins).to(self.device),
+                        sampling_time=self.sampling_time
                     )
-        # roi_events_aug = self.augment(roi_events)
-        spike = roi_events.fill_tensor(
-                    torch.zeros(2, self.w_in, self.w_in, self.num_time_bins).to(self.device),
-                    sampling_time=self.sampling_time
-                )
-        print(f'Completed Loading: {label} from file ---------------------------------------', end='\r')
-        # spike_aug = roi_events_aug.fill_tensor(
-        #             torch.zeros(2, self.w_in, self.w_in, self.num_time_bins).to(self.device),
-        #             sampling_time=self.sampling_time
-        #         )
-        return spike, self.all_labels.index(label)
-        
-        # return torch.cat((spike,spike_aug),dim=0), self.all_labels.index(label)
+            print(f'Completed Loading: {label} from file ---------------------------------------', end='\r')
+            spike_aug = roi_events_aug.fill_tensor(
+                        torch.zeros(2, self.w_in, self.w_in, self.num_time_bins).to(self.device),
+                        sampling_time=self.sampling_time
+                    )
+            # return spike, self.all_labels.index(label)
+            
+            return torch.cat((spike,spike_aug),dim=0), self.all_labels.index(label)
+        else:
+            filename = self.samples[index]
+            a_label = filename.split(os.sep)[-3]
+            n_labels = np.array(self.all_labels)[np.where(np.array(self.all_labels) != np.array(a_label))[0]]
+            n_label = n_labels[np.random.default_rng().choice(len(n_labels),1)].item()
+
+            d_names = next(os.walk(self.path + os.sep + a_label + os.sep + '.'))[1]
+            a_number = sorted(d_names).index(filename.split(os.sep)[-2])
+            roi_event_nparray = read_events.prepare_test_image(
+                                    read_events.load_sample(a_label,a_number,self.device), 
+                                    a_label,self.device
+                                ).to(torch.device('cpu'))
+            roi_events = slayer.io.Event(
+                            roi_event_nparray[:, 0],
+                            roi_event_nparray[:, 1],
+                            roi_event_nparray[:, 3],
+                            roi_event_nparray[:, 2]
+                        )
+            a_spike = roi_events.fill_tensor(
+                        torch.zeros(2, self.w_in, self.w_in, self.num_time_bins).to(self.device),
+                        sampling_time=self.sampling_time
+                    )
+            print(f'Completed Loading: {a_label} from file ---------------------------------------', end='\r')
+            all_index = np.arange(len(d_names))
+            p_numbers = all_index[np.where(all_index != a_number)]
+            p_number = p_numbers[np.random.default_rng().choice(len(p_numbers),1)].item()
+            roi_event_nparray = read_events.prepare_test_image(
+                                    read_events.load_sample(a_label,p_number,self.device), 
+                                    a_label,self.device
+                                ).to(torch.device('cpu'))
+            roi_events = slayer.io.Event(
+                            roi_event_nparray[:, 0],
+                            roi_event_nparray[:, 1],
+                            roi_event_nparray[:, 3],
+                            roi_event_nparray[:, 2]
+                        )
+            p_spike = roi_events.fill_tensor(
+                        torch.zeros(2, self.w_in, self.w_in, self.num_time_bins).to(self.device),
+                        sampling_time=self.sampling_time
+                    )
+
+            n_d_names = next(os.walk(self.path + os.sep + n_label + os.sep + '.'))[1]
+            n_number = np.random.default_rng().choice(len(n_d_names),1)[0]
+            roi_event_nparray = read_events.prepare_test_image(
+                                    read_events.load_sample(n_label,n_number,self.device), 
+                                    n_label,self.device
+                                ).to(torch.device('cpu'))
+            roi_events = slayer.io.Event(
+                            roi_event_nparray[:, 0],
+                            roi_event_nparray[:, 1],
+                            roi_event_nparray[:, 3],
+                            roi_event_nparray[:, 2]
+                        )
+            n_spike = roi_events.fill_tensor(
+                        torch.zeros(2, self.w_in, self.w_in, self.num_time_bins).to(self.device),
+                        sampling_time=self.sampling_time
+                    )
+            return torch.cat((a_spike,p_spike,n_spike),dim=0), self.all_labels.index(a_label)
+            
+
 
     def __len__(self):
         return len(self.samples)
@@ -97,20 +159,34 @@ class ROTDataset(Dataset):
 if __name__ == '__main__':
     training_set = ROTDataset()
     filename = training_set.samples[47]
-    label = filename.split(os.sep)[-3]
-    d_names = next(os.walk(training_set.path + os.sep + label + os.sep + '.'))[1]
-    number = sorted(d_names).index(filename.split(os.sep)[-2])
-    roi_event_nparray = read_events.prepare_test_image(
-                                read_events.load_sample(label,number), 
-                                label
-                            )
-    roi_events = slayer.io.Event(
-                    roi_event_nparray[:, 0],
-                    roi_event_nparray[:, 1],
-                    roi_event_nparray[:, 3],
-                    roi_event_nparray[:, 2]
-                )
-    print(training_set.all_labels.index(label))
-    anim = roi_events.anim(plt.figure(figsize=(5, 5)), frame_rate=4800)
-    cwd = os.getcwd()
-    anim.save(f'{cwd}{os.sep}gifs/{label}_{number}.gif', animation.PillowWriter(fps=5), dpi=300)
+    a_label = filename.split(os.sep)[-3]
+    # n_labels = np.array(training_set.all_labels)[np.where(np.array(training_set.all_labels) != np.array(a_label))[0]]
+    
+    # n_label = n_labels[np.random.default_rng().choice(len(n_labels),1)].item()
+
+    # d_names = next(os.walk(training_set.path + os.sep + a_label + os.sep + '.'))[1]
+    # a_number = sorted(d_names).index(filename.split(os.sep)[-2])
+    # print(sorted(d_names)[a_number])
+    # all_index = np.arange(len(d_names))
+    # p_numbers = all_index[np.where(all_index != a_number)]
+    # p_number = p_numbers[np.random.default_rng().choice(len(p_numbers),1)].item()
+    # print(sorted(d_names)[p_number])
+    # n_d_names = next(os.walk(training_set.path + os.sep + n_label + os.sep + '.'))[1]
+    # n_number = np.random.default_rng().choice(len(n_d_names),1)[0]
+    # print(sorted(n_d_names)[n_number])
+    # d_names = next(os.walk(training_set.path + os.sep + label + os.sep + '.'))[1]
+    # number = sorted(d_names).index(filename.split(os.sep)[-2])
+    # roi_event_nparray = read_events.prepare_test_image(
+    #                             read_events.load_sample(label,number), 
+    #                             label
+    #                         )
+    # roi_events = slayer.io.Event(
+    #                 roi_event_nparray[:, 0],
+    #                 roi_event_nparray[:, 1],
+    #                 roi_event_nparray[:, 3],
+    #                 roi_event_nparray[:, 2]
+    #             )
+    # print(training_set.all_labels.index(label))
+    # anim = roi_events.anim(plt.figure(figsize=(5, 5)), frame_rate=4800)
+    # cwd = os.getcwd()
+    # anim.save(f'{cwd}{os.sep}gifs/{label}_{number}.gif', animation.PillowWriter(fps=5), dpi=300)

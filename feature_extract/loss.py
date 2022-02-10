@@ -4,6 +4,18 @@ from __future__ import print_function
 import torch
 import torch.nn as nn
 
+import os,sys
+
+cwd = os.getcwd()
+lava_dl_path = f"{cwd}{os.sep}..{os.sep}lava-dl{os.sep}src"
+sys.path.insert(0,lava_dl_path)
+lava_path = f"{cwd}{os.sep}..{os.sep}lava{os.sep}src"
+sys.path.insert(0,lava_path)
+sys.path.insert(0,cwd)
+
+import lava.lib.dl.slayer as slayer
+import torch.nn.functional as F
+
 
 class SupConLoss(nn.Module):
     """Supervised Contrastive Learning: https://arxiv.org/pdf/2004.11362.pdf.
@@ -66,8 +78,11 @@ class SupConLoss(nn.Module):
         # logits_max, _ = torch.max(anchor_dot_contrast, dim=1, keepdim=True)
         # logits = anchor_dot_contrast - logits_max.detach()
         logits = anchor_dot_contrast
+        print(logits.shape)
         # tile mask
-        mask = mask.repeat(anchor_count, contrast_count)
+        # print(mask.shape)
+        # mask = mask.repeat(anchor_count, contrast_count)
+        
         
         # mask-out self-contrast cases
         logits_mask = torch.scatter(
@@ -78,10 +93,12 @@ class SupConLoss(nn.Module):
         ).to(device)
         
         mask = mask * logits_mask
-        # print(mask)
+        
         # compute log_prob
         exp_logits = torch.exp(logits) * logits_mask
+        
         log_prob = logits - torch.log(exp_logits.sum(1, keepdim=True))
+        print(log_prob)
         # print(log_prob)
         # compute mean of log-likelihood over positive
         mean_log_prob_pos = (mask * log_prob).sum(1) / mask.sum(1)
@@ -92,6 +109,36 @@ class SupConLoss(nn.Module):
         loss = loss.view(anchor_count, batch_size).mean()
 
         return loss
+
+class TripletLossWithMining(nn.Module):
+    def __init__(
+        self, 
+        moving_window=None, reduction='mean'
+    ):
+        super(TripletLossWithMining, self).__init__()
+        
+        self.reduction = reduction
+        if moving_window is not None:
+            self.window = slayer.classifier.MovingWindow(moving_window)
+        else:
+            self.window = None
+
+    def forward(self, input, label):
+        """Forward computation of loss.
+        """
+        input = input.reshape(input.shape[0], -1, input.shape[-1])
+        if self.window is None:  # one label for each sample in a batch
+            
+            spike_rate = slayer.classifier.Rate.rate(input)
+            a_spike_rate, p_spike_rate, n_spike_rate = torch.split(spike_rate,int(spike_rate.shape[0]/3),dim=0)
+            print(a_spike_rate.shape)
+            return F.triplet_margin_loss(
+                a_spike_rate,
+                p_spike_rate,
+                n_spike_rate,
+                swap=True,
+                reduction=self.reduction
+            )
 
 if __name__ == '__main__':
 
