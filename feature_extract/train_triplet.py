@@ -17,8 +17,7 @@ import matplotlib.pyplot as plt
 from matplotlib import cm
 import h5py
 import loss
-from tsne_torch import TorchTSNE as TSNE
-
+from sklearn.manifold import TSNE
 
 class Network(torch.nn.Module):
     def __init__(self):
@@ -85,8 +84,8 @@ if __name__ == '__main__':
     trained_folder = 'Trained'
     os.makedirs(trained_folder, exist_ok=True)
 
-    # device = torch.device('cpu')
-    device = torch.device('cuda')
+    device = torch.device('cpu')
+    # device = torch.device('cuda')
 
     net = Network().to(device)
 
@@ -94,7 +93,7 @@ if __name__ == '__main__':
     error = loss.TripletLossWithMining().to(device)
 
     training_set = rot2020_dataset.ROTDataset(train=True,device=device,loss=error)
-    testing_set = rot2020_dataset.ROTDataset(train=False,device=device)
+    testing_set = rot2020_dataset.ROTDataset(train=False,device=device,loss=error)
 
     train_loader = DataLoader(
             dataset=training_set, batch_size=4, shuffle=True
@@ -120,7 +119,8 @@ if __name__ == '__main__':
             # print(''.join( [f'{training_set.all_labels[label[k].item()]} ' for k in range(len(label))] ))
             a_input, p_input, n_input = torch.split(input,2,dim=1)
             input = torch.cat((a_input,p_input, n_input),dim=0).to(device)
-            
+            label = label.reshape((-1,1)).to(device)
+            print(label.shape)            
             # print(label)
             output, count = assistant.train(input, label)
             # print(output)
@@ -138,11 +138,11 @@ if __name__ == '__main__':
             input = torch.cat((a_input,p_input, n_input),dim=0).to(device)
 
             output, count = assistant.test(input, label)
-
+            label = label.reshape((-1,1)).detach().cpu()
             spike_rate = slayer.classifier.Rate.rate(output)
             a_spike_rate, p_spike_rate, n_spike_rate = torch.split(spike_rate,int(spike_rate.shape[0]/3),dim=0)
-            test_features = torch.cat((test_features,a_spike_rate),dim=0)
-            labels = torch.cat((labels,label),dim=0)
+            test_features = torch.cat((test_features,a_spike_rate.detach().cpu()),dim=0)
+            labels = torch.cat((labels,label.to(device)),dim=0)
             header = [
                     'Event rate : ' +
                     ', '.join([f'{c.item():.4f}' for c in count.flatten()])
@@ -151,13 +151,13 @@ if __name__ == '__main__':
 
         if stats.testing.best_loss:
             torch.save(net.state_dict(), trained_folder + os.sep + 'network.pt')
-            tsne = TSNE(n_components=2, perplexity=30, n_iter=1000, verbose=True)
+            tsne = TSNE(2, verbose=1)
             tsne_proj = tsne.fit_transform(test_features)
             # Plot those points as a scatter plot and label them based on the pred labels
             cmap = cm.get_cmap('tab20')
             fig, ax = plt.subplots(figsize=(8,8))
-            num_categories = 10
-            for lab in range(len(training_set.all_labels)):
+            num_categories = len(training_set.all_labels)
+            for lab in range(num_categories):
                 indices = labels==lab
                 ax.scatter(tsne_proj[indices,0],tsne_proj[indices,1], c=np.array(cmap(lab)).reshape(1,4), label = lab ,alpha=0.5)
             ax.legend(fontsize='large', markerscale=2)

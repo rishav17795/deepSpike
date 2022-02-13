@@ -131,7 +131,6 @@ class TripletLossWithMining(nn.Module):
             
             spike_rate = slayer.classifier.Rate.rate(input)
             a_spike_rate, p_spike_rate, n_spike_rate = torch.split(spike_rate,int(spike_rate.shape[0]/3),dim=0)
-            print(a_spike_rate.shape)
             return F.triplet_margin_loss(
                 a_spike_rate,
                 p_spike_rate,
