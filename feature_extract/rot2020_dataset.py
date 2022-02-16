@@ -60,7 +60,6 @@ class ROTDataset(Dataset):
             # print(filename)
             a_spike = torch.load(filename)
             
-            print(f'Completed Loading: {a_label} from file ---------------------------------------', end='\r')
             d_names = next(os.walk(self.path + os.sep + a_label + os.sep + '.'))[1]
             a_number = sorted(d_names).index(filename.split(os.sep)[-2])
             all_index = np.arange(len(d_names))
