@@ -119,8 +119,7 @@ if __name__ == '__main__':
             # print(''.join( [f'{training_set.all_labels[label[k].item()]} ' for k in range(len(label))] ))
             a_input, p_input, n_input = torch.split(input,2,dim=1)
             input = torch.cat((a_input,p_input, n_input),dim=0).to(device)
-            label = label.reshape((-1,1)).to(device)
-            print(label.shape)            
+            label = label.reshape((-1,1)).to(device)     
             # print(label)
             output, count = assistant.train(input, label)
             # print(output)
@@ -130,8 +129,8 @@ if __name__ == '__main__':
                 ]
             stats.print(epoch, iter=i, header=header, dataloader=train_loader)
         
-        test_features = torch.empty((1,128))
-        labels = torch.empty(1,1)
+        test_features = torch.empty((1,128)).cpu()
+        labels = torch.empty(1,1).cpu()
         for i, (input, label) in enumerate(test_loader):  # testing loop
 
             a_input, p_input, n_input = torch.split(input,2,dim=1)
@@ -142,7 +141,7 @@ if __name__ == '__main__':
             spike_rate = slayer.classifier.Rate.rate(output)
             a_spike_rate, p_spike_rate, n_spike_rate = torch.split(spike_rate,int(spike_rate.shape[0]/3),dim=0)
             test_features = torch.cat((test_features,a_spike_rate.detach().cpu()),dim=0)
-            labels = torch.cat((labels,label.to(device)),dim=0)
+            labels = torch.cat((labels,label.detach().cpu()),dim=0)
             header = [
                     'Event rate : ' +
                     ', '.join([f'{c.item():.4f}' for c in count.flatten()])
