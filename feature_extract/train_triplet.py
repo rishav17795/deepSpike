@@ -137,11 +137,11 @@ if __name__ == '__main__':
             input = torch.cat((a_input,p_input, n_input),dim=0).to(device)
 
             output, count = assistant.test(input, label)
-            # label = label.reshape((-1,1)).detach().cpu()
-            # spike_rate = slayer.classifier.Rate.rate(output)
-            # a_spike_rate, p_spike_rate, n_spike_rate = torch.split(spike_rate,int(spike_rate.shape[0]/3),dim=0)
-            # test_features = torch.cat((test_features,a_spike_rate.detach().cpu()),dim=0)
-            # labels = torch.cat((labels,label),dim=0)
+            label = label.reshape((-1,1)).detach().cpu()
+            spike_rate = slayer.classifier.Rate.rate(output)
+            a_spike_rate, p_spike_rate, n_spike_rate = torch.split(spike_rate,int(spike_rate.shape[0]/3),dim=0)
+            test_features = torch.cat((test_features,a_spike_rate.detach().cpu()),dim=0)
+            labels = torch.cat((labels,label),dim=0)
             header = [
                     'Event rate : ' +
                     ', '.join([f'{c.item():.4f}' for c in count.flatten()])
@@ -150,22 +150,20 @@ if __name__ == '__main__':
 
         if stats.testing.best_loss:
             torch.save(net.state_dict(), trained_folder + os.sep + 'network.pt')
-            # test_features = np.array(test_features)
-            # print(test_features.shape)
-            # tsne = TSNE(2, verbose=1)
-            # tsne_proj = tsne.fit_transform(test_features)
-            # print(tsne_proj.shape)
-            # # Plot those points as a scatter plot and label them based on the pred labels
-            # cmap = cm.get_cmap('tab20')
-            # fig, ax = plt.subplots(figsize=(8,8))
-            # num_categories = len(training_set.all_labels)
-            # for lab in range(num_categories):
-            #     indices = labels==lab
-            #     indices = indices.reshape((1,-1))
-            #     print(tsne_proj[indices,0])
-            #     ax.scatter(tsne_proj[indices,0],tsne_proj[indices,1], c=np.array(cmap(lab)).reshape(1,4), label = lab ,alpha=0.5)
-            # ax.legend(fontsize='large', markerscale=2)
-            # plt.savefig(f'{trained_folder}{os.sep}tsne_epoch_{epoch}.png')
+            test_features = np.array(test_features)
+            labels = np.array(labels)
+            tsne = TSNE(2, verbose=1)
+            tsne_proj = tsne.fit_transform(test_features)
+            # Plot those points as a scatter plot and label them based on the pred labels
+            cmap = cm.get_cmap('tab20')
+            fig, ax = plt.subplots(figsize=(8,8))
+            num_categories = len(training_set.all_labels)
+            for lab in range(num_categories):
+                indices = labels==lab
+                indices = indices.reshape((1,-1)).nonzero()
+                ax.scatter(tsne_proj[indices,0],tsne_proj[indices,1], c=np.array(cmap(lab)).reshape(1,4), label = lab ,alpha=0.5)
+            ax.legend(fontsize='large', markerscale=2)
+            plt.savefig(f'{trained_folder}{os.sep}tsne_epoch_{epoch}.png')
 
         stats.update()
         stats.save(trained_folder + os.sep)
