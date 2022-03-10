@@ -8,6 +8,9 @@ lava_env2/
 
 feature_extract/__pycache__/
 feature_extract/gifs/
+feature_extract/data_tensors
+feature_extract/data_tensors_2
+feature_extract/data
 .Python
 [Bb]in
 [Ii]nclude

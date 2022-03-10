@@ -1,5 +1,5 @@
 from doctest import OutputChecker
-import os,sys
+import os,sys,shutil
 import numpy as np
 import warnings
 
@@ -38,18 +38,18 @@ class Network(torch.nn.Module):
         self.blocks = torch.nn.ModuleList([
                 slayer.block.cuba.Conv(
                     neuron_params_drop, in_features = 2, out_features = 8,
-                    kernel_size = (3,3) , stride = (2,2), padding = 1,
-                    weight_norm=True, delay=True
+                    kernel_size = (7,7) , stride = (4,4), padding = 3,
+                    weight_norm=True
                 ),
                 slayer.block.cuba.Pool(
                     neuron_params_drop, kernel_size = (2,2), stride = (2,2), padding = 0,
-                    weight_norm=True, delay=True
+                    weight_norm=True
                 ),
                 slayer.block.cuba.Flatten(),
                 slayer.block.cuba.Dense(
-                    neuron_params, in_neurons = 8*24*24, out_neurons = 128,
+                    neuron_params, in_neurons = 8*12*12, out_neurons = 128,
                     weight_norm=True
-                ),
+                )
             ])
 
     def forward(self, spike):
@@ -82,19 +82,21 @@ class Network(torch.nn.Module):
             b.export_hdf5(layer.create_group(f'{i}'))
 
 if __name__ == '__main__':
+    
     trained_folder = 'Trained'
+    shutil.rmtree(trained_folder)
     os.makedirs(trained_folder, exist_ok=True)
-
-    # device = torch.device('cpu')
-    device = torch.device('cuda')
+    
+    device = torch.device('cpu')
+    # device = torch.device('cuda')
 
     net = Network().to(device)
 
     optimizer = torch.optim.Adam(net.parameters(), lr=0.001)
     error = loss.TripletLossWithMining().to(device)
 
-    training_set = rot2020_dataset.ROTDataset(train=True,device=device,loss=error)
-    testing_set = rot2020_dataset.ROTDataset(train=False,device=device,loss=error)
+    training_set = rot2020_dataset.ROTDataset(train=True, device=device, from_tensor = True, loss=error)
+    testing_set = rot2020_dataset.ROTDataset(train=False , device=device, from_tensor = True, loss=error)
 
     train_loader = DataLoader(
             dataset=training_set, batch_size=32, shuffle=True
@@ -113,7 +115,7 @@ if __name__ == '__main__':
             net, error, optimizer, stats, count_log=True
         )
 
-    epochs = 200
+    epochs = 500
     with warnings.catch_warnings():
         warnings.simplefilter("ignore")
         for epoch in range(epochs):
@@ -131,8 +133,8 @@ if __name__ == '__main__':
                     ]
                 stats.print(epoch, iter=i, header=header, dataloader=train_loader)
 
-            if np.mod(epoch+1, 10) == 0:
-                assistant.reduce_lr(factor = 2)
+            # if np.mod(epoch+1, 10) == 0:
+            #     assistant.reduce_lr(factor = 2)
             
             test_features = torch.empty((1,128)).cpu()
             labels = torch.empty(1,1).cpu()
@@ -153,26 +155,39 @@ if __name__ == '__main__':
                     ]
                 stats.print(epoch, iter=i, header=header, dataloader=test_loader)
 
+            stats.update()
             if stats.testing.best_loss:
                 torch.save(net.state_dict(), trained_folder + os.sep + 'network.pt')
+                torch.save(net, trained_folder + os.sep + 'network.h5')
                 net.export_hdf5(trained_folder + os.sep + 'network.net')
                 test_features = np.array(test_features)
                 labels = np.array(labels)
                 
                 tsne = TSNE(2)
-                tsne_proj = tsne.fit_transform(test_features)
-                # Plot those points as a scatter plot and label them based on the pred labels
-                cmap = cm.get_cmap('tab20')
-                fig, ax = plt.subplots(figsize=(8,8))
-                num_categories = len(training_set.all_labels)
-                for lab in range(num_categories):
-                    indices = labels==lab
-                    indices = indices.reshape((1,-1)).nonzero()
-                    ax.scatter(tsne_proj[indices,0],tsne_proj[indices,1], c=np.array(cmap(lab)).reshape(1,4), label = lab ,alpha=0.5)
-                ax.legend(labels = training_set.all_labels, fontsize='large', markerscale=2)
-                plt.savefig(f'{trained_folder}{os.sep}tsne_epoch_{epoch}.png')
+                try:
+                    tsne_proj = tsne.fit_transform(test_features)
+                    # Plot those points as a scatter plot and label them based on the pred labels
+                    cmap = cm.get_cmap('tab20')
+                    fig, ax = plt.subplots(figsize=(8,8))
+                    num_categories = len(training_set.all_labels)
+                    for lab in range(num_categories):
+                        indices = labels==lab
+                        indices = indices.reshape((1,-1)).nonzero()
+                        ax.scatter(tsne_proj[indices,0],tsne_proj[indices,1], c=np.array(cmap(lab)).reshape(1,4), label = lab ,alpha=0.5)
+                    # Shrink current axis by 20%
+                    box = ax.get_position()
+                    ax.set_position([box.x0, box.y0, box.width * 0.8, box.height])
 
-            stats.update()
+                    # Put a legend to the right of the current axis
+                    # ax.legend(loc='center left', bbox_to_anchor=(1, 0.5))
+                    ax.legend(loc='center left', bbox_to_anchor=(1, 0.5), labels = training_set.all_labels, fontsize='large', markerscale=2)
+                    plt.savefig(f'{trained_folder}{os.sep}tsne_epoch_{epoch}.png')
+                    
+                except ValueError:
+                    print("That NaN problem!!!")
+                
+
+            
             stats.save(trained_folder + os.sep)
             stats.plot(path=trained_folder + os.sep)
             net.grad_flow(trained_folder + os.sep)
