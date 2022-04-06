@@ -211,16 +211,18 @@ if __name__ == '__main__':
     num_time_bins=120
     sampling_time=4/num_time_bins
     training_set = ROTDataset(num_time_bins=num_time_bins, sampling_time=sampling_time, train=True)
-    filename = training_set.samples[55]
+    path=os.path.join('data', '20_20_rot_data')
+    samples = glob.glob(f'{path}{os.sep}*{os.sep}*{os.sep}data.log')
+    filename = samples[145]
     # print(filename)
-    # a_label = filename.split(os.sep)[-3]
+    a_label = filename.split(os.sep)[-3]
 
     # n_labels = np.array(training_set.all_labels)[np.where(np.array(training_set.all_labels) != np.array(a_label))[0]]
     
     # n_label = n_labels[np.random.default_rng().choice(len(n_labels),1)].item()
 
-    # d_names = next(os.walk(training_set.path + os.sep + a_label + os.sep + '.'))[1]
-    # a_number = sorted(d_names).index(filename.split(os.sep)[-2])
+    d_names = next(os.walk(path + os.sep + a_label + os.sep + '.'))[1]
+    a_number = sorted(d_names).index(filename.split(os.sep)[-2])
     # # print(sorted(d_names)[a_number])
     # # all_index = np.arange(len(d_names))
     # # p_numbers = all_index[np.where(all_index != a_number)]
@@ -232,85 +234,84 @@ if __name__ == '__main__':
     # # d_names = next(os.walk(training_set.path + os.sep + label + os.sep + '.'))[1]
     # # number = sorted(d_names).index(filename.split(os.sep)[-2])
     # t0 = time.time()
-    # roi_event_nparray = read_events.prepare_test_image(
-    #                             read_events.load_sample(a_label,a_number), 
-    #                             a_label
-    #                         )
-    # roi_events = slayer.io.Event(
-    #                 roi_event_nparray[:, 0],
-    #                 roi_event_nparray[:, 1],
-    #                 roi_event_nparray[:, 3],
-    #                 roi_event_nparray[:, 2]
-    #             )
+    roi_event_nparray = read_events.prepare_test_image(
+                                read_events.load_sample(a_label,a_number), 
+                                a_label
+                            )
+    roi_events = slayer.io.Event(
+                    roi_event_nparray[:, 0],
+                    roi_event_nparray[:, 1],
+                    roi_event_nparray[:, 3],
+                    roi_event_nparray[:, 2]
+                )
     # t1 = time.time()
     # print(roi_event_nparray[:, 2].min())
     # print(f'load_from_file_t = {t1-t0}')
 
-    # a_spike = roi_events.fill_tensor(
-    #                     torch.zeros(2, training_set.w_in, training_set.w_in, num_time_bins).to(training_set.device),
-    #                     sampling_time=sampling_time
-    #                 )
+    a_spike = roi_events.fill_tensor(
+                        torch.zeros(2, training_set.w_in, training_set.w_in, num_time_bins).to(training_set.device),
+                        sampling_time=sampling_time
+                    )
     # a_spike, _, _, _, _, _ = torch.split(a_spike,int(a_spike.shape[-1]/6),dim=3)
     
     # print(a_spike.shape)
     # torch.save(a_spike.clone(), 'spike_tensor.pt')
 
     # t0 = time.time()
-    # ix = 1
-    # for s in range(6):
-    #     a_spike_load = torch.load(f'data_tensors_saccades{os.sep}{filename.split(os.sep)[1]}{os.sep}{filename.split(os.sep)[2]}{os.sep}{filename.split(os.sep)[3]}_sac_{s}{os.sep}spike_tensor.pt')
-    #     print(a_spike_load.shape)
-    #     for i in range(a_spike_load.shape[-1]):
-    #         a_spike_load_img = a_spike_load[0,:,:,i].reshape(96,96)
-    #         ax = plt.subplot(6, a_spike_load.shape[-1], ix)
-    #         ax.set_xticks([])
-    #         ax.set_yticks([])
-    #         # plot filter channel in grayscale
-    #         plt.imshow(a_spike_load_img)
-    #         ix += 1
-    # # show the figure
-    # plt.show()
+    ix = 1
+    for s in range(6):
+        a_spike_load = torch.load(f'data_tensors_saccades{os.sep}{filename.split(os.sep)[1]}{os.sep}{filename.split(os.sep)[2]}{os.sep}{filename.split(os.sep)[3]}_sac_{s}{os.sep}spike_tensor.pt')
+        for i in range(a_spike_load.shape[-1]):
+            a_spike_load_img = a_spike_load[1,:,:,i].reshape(96,96)
+            ax = plt.subplot(6, a_spike_load.shape[-1], ix)
+            ax.set_xticks([])
+            ax.set_yticks([])
+            # plot filter channel in grayscale
+            plt.imshow(a_spike_load_img)
+            ix += 1
+    # show the figure
+    plt.show()
     # print(training_set.all_labels.index(label))
     # ----------------------following section does not work------------------------------------------------------
     # anim = events.anim(plt.figure(figsize=(5, 5)), frame_rate=40)
     # cwd = os.getcwd()
     # anim.save(f'{cwd}{os.sep}gifs/{a_label}_{a_number}_experiments.gif', animation.PillowWriter(fps=5), dpi=300)
     # -----------------------------------------------------------------------------------------------------------
-    path=os.path.join('data', '20_20_rot_data')
-    samples = glob.glob(f'{path}{os.sep}*{os.sep}*{os.sep}data.log')
-    for i in range(len(samples)):
-        filename = samples[i]
-        print(f'Converting:{i+1}/{len(samples)}')
-        a_label = filename.split(os.sep)[-3]
-        d_names = next(os.walk(path + os.sep + a_label + os.sep + '.'))[1]
-        a_number = sorted(d_names).index(filename.split(os.sep)[-2])
-        roi_event_nparray = read_events.prepare_test_image(
-                                read_events.load_sample(a_label,a_number), 
-                                a_label
-                            )
-        roi_events = slayer.io.Event(
-                        roi_event_nparray[:, 0],
-                        roi_event_nparray[:, 1],
-                        roi_event_nparray[:, 3],
-                        roi_event_nparray[:, 2]
-                    )
-        a_spike = roi_events.fill_tensor(
-                        torch.zeros(2, training_set.w_in, training_set.w_in, num_time_bins),
-                        sampling_time=sampling_time
-                    )
-        Path(f'data_tensors_saccades{os.sep}{filename.split(os.sep)[1]}{os.sep}{filename.split(os.sep)[2]}{os.sep}{filename.split(os.sep)[3]}_sac_0').mkdir(parents=True, exist_ok=True)
-        Path(f'data_tensors_saccades{os.sep}{filename.split(os.sep)[1]}{os.sep}{filename.split(os.sep)[2]}{os.sep}{filename.split(os.sep)[3]}_sac_1').mkdir(parents=True, exist_ok=True)
-        Path(f'data_tensors_saccades{os.sep}{filename.split(os.sep)[1]}{os.sep}{filename.split(os.sep)[2]}{os.sep}{filename.split(os.sep)[3]}_sac_2').mkdir(parents=True, exist_ok=True)
-        Path(f'data_tensors_saccades{os.sep}{filename.split(os.sep)[1]}{os.sep}{filename.split(os.sep)[2]}{os.sep}{filename.split(os.sep)[3]}_sac_3').mkdir(parents=True, exist_ok=True)
-        Path(f'data_tensors_saccades{os.sep}{filename.split(os.sep)[1]}{os.sep}{filename.split(os.sep)[2]}{os.sep}{filename.split(os.sep)[3]}_sac_4').mkdir(parents=True, exist_ok=True)
-        Path(f'data_tensors_saccades{os.sep}{filename.split(os.sep)[1]}{os.sep}{filename.split(os.sep)[2]}{os.sep}{filename.split(os.sep)[3]}_sac_5').mkdir(parents=True, exist_ok=True)
-        a_spike_s0, a_spike_s1, a_spike_s2, a_spike_s3, a_spike_s4, a_spike_s5 = torch.split(a_spike,int(a_spike.shape[-1]/6),dim=3)
-        torch.save(a_spike_s0.clone(), f'data_tensors_saccades{os.sep}{filename.split(os.sep)[1]}{os.sep}{filename.split(os.sep)[2]}{os.sep}{filename.split(os.sep)[3]}_sac_0{os.sep}spike_tensor.pt')
-        torch.save(a_spike_s1.clone(), f'data_tensors_saccades{os.sep}{filename.split(os.sep)[1]}{os.sep}{filename.split(os.sep)[2]}{os.sep}{filename.split(os.sep)[3]}_sac_1{os.sep}spike_tensor.pt')
-        torch.save(a_spike_s2.clone(), f'data_tensors_saccades{os.sep}{filename.split(os.sep)[1]}{os.sep}{filename.split(os.sep)[2]}{os.sep}{filename.split(os.sep)[3]}_sac_2{os.sep}spike_tensor.pt')
-        torch.save(a_spike_s3.clone(), f'data_tensors_saccades{os.sep}{filename.split(os.sep)[1]}{os.sep}{filename.split(os.sep)[2]}{os.sep}{filename.split(os.sep)[3]}_sac_3{os.sep}spike_tensor.pt')
-        torch.save(a_spike_s4.clone(), f'data_tensors_saccades{os.sep}{filename.split(os.sep)[1]}{os.sep}{filename.split(os.sep)[2]}{os.sep}{filename.split(os.sep)[3]}_sac_4{os.sep}spike_tensor.pt')
-        torch.save(a_spike_s5.clone(), f'data_tensors_saccades{os.sep}{filename.split(os.sep)[1]}{os.sep}{filename.split(os.sep)[2]}{os.sep}{filename.split(os.sep)[3]}_sac_5{os.sep}spike_tensor.pt')
+    # path=os.path.join('data', '20_20_rot_data')
+    # samples = glob.glob(f'{path}{os.sep}*{os.sep}*{os.sep}data.log')
+    # for i in range(len(samples)):
+    #     filename = samples[i]
+    #     print(f'Converting:{i+1}/{len(samples)}')
+    #     a_label = filename.split(os.sep)[-3]
+    #     d_names = next(os.walk(path + os.sep + a_label + os.sep + '.'))[1]
+    #     a_number = sorted(d_names).index(filename.split(os.sep)[-2])
+    #     roi_event_nparray = read_events.prepare_test_image(
+    #                             read_events.load_sample(a_label,a_number), 
+    #                             a_label
+    #                         )
+    #     roi_events = slayer.io.Event(
+    #                     roi_event_nparray[:, 0],
+    #                     roi_event_nparray[:, 1],
+    #                     roi_event_nparray[:, 3],
+    #                     roi_event_nparray[:, 2]
+    #                 )
+    #     a_spike = roi_events.fill_tensor(
+    #                     torch.zeros(2, training_set.w_in, training_set.w_in, num_time_bins),
+    #                     sampling_time=sampling_time
+    #                 )
+    #     Path(f'data_tensors_saccades{os.sep}{filename.split(os.sep)[1]}{os.sep}{filename.split(os.sep)[2]}{os.sep}{filename.split(os.sep)[3]}_sac_0').mkdir(parents=True, exist_ok=True)
+    #     Path(f'data_tensors_saccades{os.sep}{filename.split(os.sep)[1]}{os.sep}{filename.split(os.sep)[2]}{os.sep}{filename.split(os.sep)[3]}_sac_1').mkdir(parents=True, exist_ok=True)
+    #     Path(f'data_tensors_saccades{os.sep}{filename.split(os.sep)[1]}{os.sep}{filename.split(os.sep)[2]}{os.sep}{filename.split(os.sep)[3]}_sac_2').mkdir(parents=True, exist_ok=True)
+    #     Path(f'data_tensors_saccades{os.sep}{filename.split(os.sep)[1]}{os.sep}{filename.split(os.sep)[2]}{os.sep}{filename.split(os.sep)[3]}_sac_3').mkdir(parents=True, exist_ok=True)
+    #     Path(f'data_tensors_saccades{os.sep}{filename.split(os.sep)[1]}{os.sep}{filename.split(os.sep)[2]}{os.sep}{filename.split(os.sep)[3]}_sac_4').mkdir(parents=True, exist_ok=True)
+    #     Path(f'data_tensors_saccades{os.sep}{filename.split(os.sep)[1]}{os.sep}{filename.split(os.sep)[2]}{os.sep}{filename.split(os.sep)[3]}_sac_5').mkdir(parents=True, exist_ok=True)
+    #     a_spike_s0, a_spike_s1, a_spike_s2, a_spike_s3, a_spike_s4, a_spike_s5 = torch.split(a_spike,int(a_spike.shape[-1]/6),dim=3)
+    #     torch.save(a_spike_s0.clone(), f'data_tensors_saccades{os.sep}{filename.split(os.sep)[1]}{os.sep}{filename.split(os.sep)[2]}{os.sep}{filename.split(os.sep)[3]}_sac_0{os.sep}spike_tensor.pt')
+    #     torch.save(a_spike_s1.clone(), f'data_tensors_saccades{os.sep}{filename.split(os.sep)[1]}{os.sep}{filename.split(os.sep)[2]}{os.sep}{filename.split(os.sep)[3]}_sac_1{os.sep}spike_tensor.pt')
+    #     torch.save(a_spike_s2.clone(), f'data_tensors_saccades{os.sep}{filename.split(os.sep)[1]}{os.sep}{filename.split(os.sep)[2]}{os.sep}{filename.split(os.sep)[3]}_sac_2{os.sep}spike_tensor.pt')
+    #     torch.save(a_spike_s3.clone(), f'data_tensors_saccades{os.sep}{filename.split(os.sep)[1]}{os.sep}{filename.split(os.sep)[2]}{os.sep}{filename.split(os.sep)[3]}_sac_3{os.sep}spike_tensor.pt')
+    #     torch.save(a_spike_s4.clone(), f'data_tensors_saccades{os.sep}{filename.split(os.sep)[1]}{os.sep}{filename.split(os.sep)[2]}{os.sep}{filename.split(os.sep)[3]}_sac_4{os.sep}spike_tensor.pt')
+    #     torch.save(a_spike_s5.clone(), f'data_tensors_saccades{os.sep}{filename.split(os.sep)[1]}{os.sep}{filename.split(os.sep)[2]}{os.sep}{filename.split(os.sep)[3]}_sac_5{os.sep}spike_tensor.pt')
     
     # filename = training_set.samples[129]
     # print(filename)

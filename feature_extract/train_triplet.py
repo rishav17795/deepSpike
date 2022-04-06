@@ -28,7 +28,7 @@ class Network(torch.nn.Module):
                 'threshold'     : 1.25,
                 'current_decay' : 0.25,
                 'voltage_decay' : 0.03,
-                'tau_grad'      : 0.03,
+                'tau_grad'      : 0.075,
                 'scale_grad'    : 3,
                 'requires_grad' : False,
             }
@@ -38,7 +38,7 @@ class Network(torch.nn.Module):
         self.blocks = torch.nn.ModuleList([
                 slayer.block.cuba.Conv(
                     neuron_params_drop, in_features = 2, out_features = 8,
-                    kernel_size = (7,7) , stride = (4,4), padding = 3,
+                    kernel_size = (3,3) , stride = (2,2), padding = 1,
                     weight_norm=True
                 ),
                 slayer.block.cuba.Pool(
@@ -47,7 +47,7 @@ class Network(torch.nn.Module):
                 ),
                 slayer.block.cuba.Flatten(),
                 slayer.block.cuba.Dense(
-                    neuron_params, in_neurons = 8*12*12, out_neurons = 128,
+                    neuron_params, in_neurons = 8*24*24, out_neurons = 128,
                     weight_norm=True
                 )
             ])
@@ -87,12 +87,12 @@ if __name__ == '__main__':
     shutil.rmtree(trained_folder)
     os.makedirs(trained_folder, exist_ok=True)
     
-    device = torch.device('cpu')
-    # device = torch.device('cuda')
+    # device = torch.device('cpu')
+    device = torch.device('cuda')
 
     net = Network().to(device)
 
-    optimizer = torch.optim.Adam(net.parameters(), lr=0.001)
+    optimizer = torch.optim.Adam(net.parameters(), lr=0.0005)
     error = loss.TripletLossWithMining().to(device)
 
     training_set = rot2020_dataset.ROTDataset(train=True, device=device, from_tensor = True, loss=error)

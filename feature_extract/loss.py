@@ -135,7 +135,7 @@ class TripletLossWithMining(nn.Module):
                 a_spike_rate,
                 p_spike_rate,
                 n_spike_rate,
-                swap=True,
+                swap=False,
                 reduction=self.reduction
             )
 
